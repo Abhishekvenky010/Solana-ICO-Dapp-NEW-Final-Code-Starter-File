@@ -8,10 +8,20 @@ import {WalletModalProvider} from "@solana/wallet-adapter-react-ui";
 import {PhantomWalletAdapter,SolflareWalletAdapter} from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo } from "react";
+const network = WalletAdapterNetwork.Devnet;
+
 function MyApp({ Component, pageProps }) {
+   const endpoint = useMemo(()=> clusterApiUrl(network,[network]));
+   const wallets  = useMemo(()=> [new PhantomWalletAdapter(),new SolflareWalletAdapter()],[network])
   return (
     <>
-      <Component {...pageProps} />
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect={true}>
+        <WalletModalProvider>
+            <Component {...pageProps}/>;
+        </WalletModalProvider>
+      </WalletProvider>
+      </ConnectionProvider>
     </>
   );
 }
