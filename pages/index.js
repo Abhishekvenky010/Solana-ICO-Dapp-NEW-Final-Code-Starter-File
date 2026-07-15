@@ -230,23 +230,22 @@ const fetchUserTokenBalance = async()=>{
 };
 return (
   <div>
-    <NavBar>
-      <main>
-        <HeroSection>
-          wallet = {wallet},
-          isAdmin = {isAdmin},
-          loading = {loading},
-          ipoData = {ipoData},
-          amount = {amount},
-          userSolBalance = {userSolBalance},
-          userTokenBalance = {userTokenBalance},
-          setAmount = {setAmount},
-          createIcoAta = {createIcoAta},
-          depositIco = {depositIco},
-          buyTokens = {buyTokens}
-        </HeroSection>
-      </main>
-    </NavBar>
+    <NavBar />
+    <main>
+      <HeroSection
+        wallet={wallet}
+        isAdmin={isAdmin}
+        loading={loading}
+        ipoData={ipoData}
+        amount={amount}
+        userSolBalance={userSolBalance}
+        userTokenBalance={userTokenBalance}
+        setAmount={setAmount}
+        createIcoAta={createIcoAta}
+        depositIpo={depositIco}
+        buyTokens={buyTokens}
+      />
+    </main>
   </div>
 );
 }
