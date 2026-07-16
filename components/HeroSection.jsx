@@ -30,6 +30,14 @@ const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY;
 const BLOCKCHAIN = process.env.NEXT_PUBLIC_BLOCKCHAIN;
 const MIN_SOL_BALANCE = process.env.NEXT_PUBLIC_MIN_SOL_BALANCE;
 
+const toDisplayNumber = (value) => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number") return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value?.toString === "function") return Number(value.toString());
+  return Number(value) || 0;
+};
+
 const HeroSection = ({
   isDarkMode,
   wallet,
@@ -40,7 +48,7 @@ const HeroSection = ({
   userSolBalance,
   userTokenBalance,
   setAmount,
-  createIpoAta,
+  createIpoAta = () => {},
   depositIpo,
   buyTokens,
 }) => {
@@ -49,24 +57,27 @@ const HeroSection = ({
   const [hasSufficientBalance, setHasSufficientBalance] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
+  const tokensSold = toDisplayNumber(ipoData?.tokensSold ?? ipoData?.totalSold);
+  const totalTokens = toDisplayNumber(ipoData?.totalTokens);
+  const availableTokens = Math.max(totalTokens - tokensSold, 0);
+
   const calculateProgressPercentage = () => {
-    if (!ipoData?.tokensSold?.toString() || !ipoData?.totalTokens?.toString())
+    if (!tokensSold || !totalTokens)
       return 0;
 
-    const availbleSupply =
-      Number(ipoData?.tokensSold?.toString()) +
-      Number(ipoData?.totalTokens?.toString());
-    const soldAmount = parseFloat(ipoData?.tokensSold?.toString()) || 0;
-    const totalSupply = parseFloat(availbleSupply) || 1;
+    const totalSupply = tokensSold + totalTokens;
 
-    const percentage = Math.min((soldAmount / totalSupply) * 100, 100);
+    const percentage = Math.min((tokensSold / totalSupply) * 100, 100);
     return parseFloat(percentage.toFixed(2));
   };
 
   const executePurchase = async () => {
     setIsLoading(true);
-    const callingBuy = buyTokens();
-    setIsLoading(false);
+    try {
+      await buyTokens();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getButtonMessage = () => {
@@ -93,7 +104,7 @@ const HeroSection = ({
 
   const bgColor = "bg-gray-900";
   const textColor = "text-white";
-  const secondaryTextColor = "text-gray-400";
+  const secondaryTextColor = "text-blue-400";
   const cardBg = "bg-gray-800";
   const cardBorder = "border-gray-700";
   const inputBg = "bg-gray-700 border-gray-600";
@@ -154,7 +165,7 @@ const HeroSection = ({
               <div
                 className={`px-4 py-3 rounded-xl ${isDarkMode ? "bg-gray-800" : "bg-gray-100"} flex items-center`}
               >
-                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-3">
+                <div className="w-10 h-10 rounded-full bg-purple-600/30 ring-1 ring-purple-500/40 flex items-center justify-center mr-3">
                   <One />
                 </div>
                 <div>
@@ -165,7 +176,7 @@ const HeroSection = ({
               <div
                 className={`px-4 py-3 rounded-xl ${isDarkMode ? "bg-gray-800" : "bg-gray-100"} flex items-center`}
               >
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mr-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-600/30 ring-1 ring-emerald-500/40 flex items-center justify-center mr-3">
                   <Two />
                 </div>
                 <div>
@@ -176,7 +187,7 @@ const HeroSection = ({
               <div
                 className={`px-4 py-3 rounded-xl ${isDarkMode ? "bg-gray-800" : "bg-gray-100"} flex items-center`}
               >
-                <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-3">
+                <div className="w-10 h-10 rounded-full bg-purple-600/30 ring-1 ring-purple-500/40 flex items-center justify-center mr-3">
                   <Three />
                 </div>
                 <div>
@@ -187,7 +198,7 @@ const HeroSection = ({
               <div
                 className={`px-4 py-3 rounded-xl ${isDarkMode ? "bg-gray-800" : "bg-gray-100"} flex items-center`}
               >
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mr-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-600/30 ring-1 ring-emerald-500/40 flex items-center justify-center mr-3">
                   <Four />
                 </div>
                 <div>
@@ -271,11 +282,11 @@ const HeroSection = ({
                       Total Raised:{" "}
                       <span className="font-medium">
                         $
-                        {parseFloat(ipoData?.tokensSold?.toString() || 0) *
+                        {tokensSold *
                           parseFloat(PER_TOKEN_USD_PRICE || 0) >
                         0
                           ? (
-                              parseFloat(ipoData?.tokensSold?.toString() || 0) *
+                              tokensSold *
                               parseFloat(PER_TOKEN_USD_PRICE || 0)
                             ).toFixed(2)
                           : "0"}
@@ -284,7 +295,7 @@ const HeroSection = ({
                     <p className={`text-xs ${secondaryTextColor}`}>
                       Tokens Left:{" "}
                       <span className="font-medium text-emerald-500">
-                        {ipoData?.totalTokens - ipoData?.tokensSold} {TOKEN_SYMBOL}
+                        {availableTokens} {TOKEN_SYMBOL}
                       </span>
                     </p>
                   </div>
@@ -403,9 +414,19 @@ const HeroSection = ({
                       </>
                     ) : (
                       <button
-                        className="w-full bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700 text-white rounded-lg py-4 mb-4 flex items-center justify-center transition-all duration-300 font-medium shadow-lg"
+                        onClick={isAdmin ? createIpoAta : undefined}
+                        disabled={!isAdmin || loading}
+                        className={`w-full ${
+                          isAdmin
+                            ? "bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700"
+                            : "bg-gray-700 cursor-not-allowed"
+                        } text-white rounded-lg py-4 mb-4 flex items-center justify-center transition-all duration-300 font-medium shadow-lg`}
                       >
-                        IPO needs to be initialized
+                        {isAdmin
+                          ? loading
+                            ? "Initializing ..."
+                            : "Initialize IPO"
+                          : "IPO needs to be initialized"}
                       </button>
                     )}
                   </>

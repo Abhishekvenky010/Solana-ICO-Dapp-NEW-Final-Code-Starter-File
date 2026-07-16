@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("5izfVQfEfa2LXvopdJBp7SrdNHA6FaB8mptfd7svHSRW");
+declare_id!("Bi1kLdHWdSQxBnTM3JAPrwrx1eNRJWHra2afjXe5Y9TN");
 
 pub const IPO_MINT_ADDRESS: &str = "Aw76qq1jgcEU5ahtmKUpWKoL5hjsqaBkvZNBdHnXzpAi";
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
@@ -22,12 +22,12 @@ pub mod ipo {
 
     pub fn create_ipo_ata(
         ctx: Context<CreateIpoATA>,
-        ico_amount: u64,
+        ipo_amount: u64,
     ) -> Result<()> {
 
         msg!("Creating program ATA to hold IPO tokens");
 
-        let raw_amount = ico_amount
+        let raw_amount = ipo_amount
             .checked_mul(TOKEN_DECIMALS)
             .ok_or(ErrorCode::Overflow)?;
 
@@ -45,7 +45,7 @@ pub mod ipo {
         let data = &mut ctx.accounts.data;
 
         data.admin = ctx.accounts.admin.key();
-        data.total_tokens = ico_amount;
+        data.total_tokens = ipo_amount;
         data.total_sold = 0;
 
         msg!("Initialized IPO data");
@@ -179,6 +179,8 @@ pub struct CreateIpoATA<'info> {
         payer = admin,
         token::mint = ipo_mint,
         token::authority = ipo_ata_for_ipo_program,
+        seeds = [ipo_mint.key().as_ref()],
+        bump
     )]
     pub ipo_ata_for_ipo_program: Account<'info, TokenAccount>,
 

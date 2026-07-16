@@ -90,9 +90,10 @@ const NavBar = () => {
                   <Image
                     src="/logo.png"
                     alt="Logo"
-                    width={70}
+                    width={40}
                     height={40}
                     priority
+                    style={{ width: "40px", height: "40px" }}
                   />
                   <span className="ml-2 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-emerald-500">
                     Solaris

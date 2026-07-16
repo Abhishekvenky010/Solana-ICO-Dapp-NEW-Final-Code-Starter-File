@@ -1,140 +1,179 @@
-# Solana ICO PreSale DApp
+# Solana ICO Presale DApp
 
-🚀 Build & Deploy Advanced Solana ICO PreSale DApp | Rust Anchor Framework + Next.js Solana ICO Project
+A full-stack **Initial Coin Offering (ICO) presale** DApp on Solana. Users connect a wallet (Phantom), buy your SPL token with SOL at a fixed presale price, and watch live sale progress. Admins can initialize the sale, deposit tokens into the program vault, and monitor status.
 
-Learn how to build and deploy a full-stack Solana ICO PreSale DApp using the Anchor framework (Rust) and Next.js! This in-depth tutorial walks you through creating a complete Initial Coin Offering project on the Solana blockchain — from smart contract development to frontend integration.
+Built with the **Anchor framework (Rust)** for the on-chain program and **Next.js** for the frontend.
 
-🚀 What You’ll Learn:
+---
 
-- Solana program development with Rust & Anchor
-- ICO logic: token creation, sale phases, contributions
-- Connecting your smart contract to Next.js frontend
-- Using Phantom Wallet for seamless Web3 interactions
-- Deploying on Solana Devnet & Mainnet
-- Bonus: Toggle network, responsive design, and more!
+## What's Inside
 
-🛠 Tech Stack:
-Solana • Rust • Anchor • Next.js • Phantom Wallet • TailwindCSS • Web3
+| Layer        | Tech                                                       |
+| ------------ | ---------------------------------------------------------- |
+| Smart contract | Rust + Anchor (`Contract/SolanaICO.rs`)                 |
+| Frontend     | Next.js (Pages Router) + React                            |
+| Wallet       | Solana Wallet Adapter (Phantom, etc.)                     |
+| Styling      | TailwindCSS                                                |
+| Token        | SPL Token (associated token accounts)                      |
 
-🎓 Whether you're a Web3 developer or exploring Solana DApps for the first time, this project is a great deep dive into real-world blockchain development!
+### Features
+- Connect wallet (Phantom / Solflare / Backpack) via Wallet Adapter
+- Buy presale tokens with SOL at a fixed price (`0.001 SOL` per token)
+- Live sale progress bar (tokens sold / total supply)
+- Admin panel: initialize the IPO, deposit tokens into the vault, view status
+- Responsive UI with animated hero section
 
-#Solana #ICO #Anchor #Rust #Nextjs #SolanaDevelopment #CryptoDapp #Web3 #SolanaICO
+---
 
-## Project Overview
-
-![alt text](https://www.daulathussain.com/wp-content/uploads/2025/04/Build-Deploy-Advanced-Solana-ICO-PreSale-DApp-Rust-Anchor-Framework-Next.js-Solana-ICO-Project.jpg)
-
-## Instruction
-
-Kindly follow the following Instructions to run the project in your system and install the necessary requirements
-
-- [Final Source Code](https://www.theblockchaincoders.com/sourceCode/build-and-deploy-advanced-solana-ico-presale-dapp)
-
-#### Setup Video
-
-- [Final Code Setup video](https://youtu.be/a6MU06oD2kY?si=Gx37OZ5yoiHQH_Oi)
-
-#### Deploying Dapp
+## Project Structure
 
 ```
-  WATCH: Hostinger
-  Get : Discount 50%
-  URL: https://www.hostg.xyz/aff_c?offer_id=6&aff_id=139422
+.
+├── Contract/
+│   └── SolanaICO.rs          # Anchor program: create_ipo_ata, deposit_ipo_ata, buy_tokens
+├── components/
+│   ├── HeroSection.jsx       # Main buy-card UI
+│   ├── Admin.jsx             # Admin / IPO details modal
+│   ├── NavBar.jsx            # Top navigation + wallet button
+│   └── SVG/                 # Inline SVG icons
+├── idl/idl.json              # Anchor IDL consumed by the frontend
+├── pages/
+│   ├── _app.js              # Wallet provider + global styles
+│   └── index.js             # Home page: wires wallet, program calls, UI
+├── public/                   # Static assets (logo.png, solana.svg)
+├── .env.local                # Frontend configuration (see below)
+└── README.md
 ```
 
-```
-  WATCH: Setup & Demo Of Project
-  Code: https://www.theblockchaincoders.com/sourceCode/build-and-deploy-advanced-solana-ico-presale-dapp
-  URL: https://youtu.be/a6MU06oD2kY?si=Gx37OZ5yoiHQH_Oi
-```
+---
 
-#### Install Vs Code Editor
+## On-Chain Program
 
-```
-  GET: VsCode Editor
-  URL: https://code.visualstudio.com/download
-```
+The Anchor program (`Contract/SolanaICO.rs`) exposes three instructions:
 
-#### NodeJs & NPM Version
+| Instruction        | Who  | What it does |
+| ------------------ | ----- | ------------ |
+| `create_ipo_ata`  | Admin | Creates the program-owned ATA vault, stores `Data` (admin, total tokens, total sold), transfers the supply into the vault. |
+| `deposit_ipo_ata` | Admin | Adds more tokens to the vault and increases `total_tokens`. |
+| `buy_tokens`      | User  | Transfers `token_amount × 0.001 SOL` from the buyer to the admin, then transfers the tokens from the vault to the buyer's ATA. Updates `total_sold`. |
 
-```
-  NodeJs: v18.17.1 / LATEST
-  NPM: 8.19.2
-  URL: https://nodejs.org/en/download
-  Video: https://youtu.be/PIR0oBVowXU?si=9eNdR29u37F2ujJJ
-```
+### Pricing (keep UI and chain in sync)
+The on-chain price is **1 token = `0.001 SOL`**, enforced by the constant:
 
-#### Clone Starter File
+```rust
+// Contract/SolanaICO.rs
+pub const LAMPORTS_PER_SOL: u64  = 1_000_000_000;
+pub const TOKEN_DECIMALS: u64     = 1_000_000_000;
+// 1 token = 0.001 SOL  =>  1_000_000 lamports per token.
+// MUST match NEXT_PUBLIC_PER_TOKEN_SOL_PRICE in .env.local.
+pub const LAMPORTS_PER_TOKEN: u64 = 1_000_000;
 
-```
-  GET: Project Starter File Download
-  URL: https://www.theblockchaincoders.com/SourceCode
-```
-
-All you need to follow the complete project and follow the instructions which are explained in the tutorial by Daulat
-
-## Final Code Instruction
-
-If you download the final source code then you can follow the following instructions to run the Dapp successfully
-
-#### Setup Video
-
-```
-  WATCH: Setup & Demo Of Project
-  URL: https://www.theblockchaincoders.com/sourceCode/build-and-deploy-advanced-solana-ico-presale-dapp
-  Video: https://youtu.be/a6MU06oD2kY?si=Gx37OZ5yoiHQH_Oi
+// in buy_tokens():
+let sol_amount = token_amount
+    .checked_mul(LAMPORTS_PER_TOKEN)
+    .ok_or(ErrorCode::Overflow)?;
 ```
 
-#### Final Source Code
+The frontend's `NEXT_PUBLIC_PER_TOKEN_SOL_PRICE` **must equal the same `0.001`**. If you change the price, update **both** the constant above and `.env.local`, then re-deploy the program.
 
-```
-  Download the Final Source Code
-  URL: https://www.theblockchaincoders.com/sourceCode/build-and-deploy-advanced-solana-ico-presale-dapp
-```
+---
 
-#### Install Vs Code Editor
+## Prerequisites
 
-```
-  GET: VsCode Editor
-  URL: https://code.visualstudio.com/download
-```
+- **Node.js** v18+ and npm
+- **Rust** + `cargo` (for building the program)
+- **Solana CLI** + `cargo build-sbf` (Anchor BPF toolchain)
+- A **Phantom** (or compatible) wallet and some **devnet SOL** for testing
+- The ICO **mint** address of your SPL token
 
-#### PINATA IPFS
+---
 
-```
-  OPEN: PINATA.CLOUD
-  URL:https://pinata.cloud/
-```
+## Setup
 
-#### ALCHEMY
-
-```
-  OPEN: ALCHEMY.COM
-  URL: https://www.alchemy.com/
+### 1. Install dependencies
+```bash
+npm install
 ```
 
-#### PHANTOM
+### 2. Configure environment
+Copy `.env.local` and fill in your values:
 
+```bash
+NEXT_PUBLIC_PROGRAM_ID="<your deployed Anchor program id>"
+NEXT_PUBLIC_ICO_MINT_TOKEN="<SPL mint address of your ICO token>"
+
+NEXT_PUBLIC_TOKEN_NAME="UT"
+NEXT_PUBLIC_TOKEN_SYMBOL="AW76"
+NEXT_PUBLIC_TOKEN_SUPPLY="1000"
+
+# UI pricing (must match the on-chain LAMPORTS_PER_TOKEN constant)
+NEXT_PUBLIC_PER_TOKEN_USD_PRICE="0.010"
+NEXT_PUBLIC_NEXT_PER_TOKEN_USD_PRICE="0.035"
+NEXT_PUBLIC_PER_TOKEN_SOL_PRICE="0.001"
+
+NEXT_PUBLIC_CURRENCY="SOL"
+NEXT_PUBLIC_BLOCKCHAIN="Solana"
+NEXT_PUBLIC_MIN_SOL_BALANCE=0.05
 ```
-  OPEN: PHANTOM.COM
-  URL: https://phantom.com/
+
+> ⚠️ `NEXT_PUBLIC_PER_TOKEN_SOL_PRICE` and the program's `LAMPORTS_PER_TOKEN`
+> must describe the **same price**. They drift apart easily — change both together.
+
+### 3. Build & deploy the Anchor program
+```bash
+cd Contract
+cargo build-sbf
+# deploy to your cluster of choice (devnet shown)
+solana program deploy ./target/deploy/solana_ico.so --url devnet
 ```
+Update `NEXT_PUBLIC_PROGRAM_ID` with the deployed address, and ensure `declare_id!`
+in `SolanaICO.rs` matches it.
 
-#### SOLANA PLAYGROUND ID
+### 4. Create the ICO token mint
+Create your SPL token (e.g. via `spl-token create-token`) and use its mint
+address as `NEXT_PUBLIC_ICO_MINT_TOKEN`. The admin must hold an ATA for this mint
+so they can deposit tokens into the vault.
 
+### 5. Run the frontend
+```bash
+npm run dev
 ```
-  OPEN: SOLANA PLAYGROUND ID
-  URL:https://beta.solpg.io/
-```
+Open http://localhost:3000 and connect your wallet.
 
-## Important Links
+---
 
-- [Get Pro Blockchain Developer Course](https://www.theblockchaincoders.com/pro-nft-marketplace)
-- [Support Creator](https://bit.ly/Support-Creator)
-- [All Projects Source Code](https://www.theblockchaincoders.com/SourceCode)
+## Using the DApp
 
-## Authors
+1. **Admin** connects, opens **IPO Details**, and clicks *Initialize IPO* to create
+   the vault and store sale data. Then *Deposit* tokens into the vault.
+2. **Buyers** connect, enter a quantity, and click **Buy Now**. The app checks the
+   buyer has enough SOL, then calls `buy_tokens`.
+3. The **progress bar** updates as `total_sold` increases on-chain.
 
-- [@theblockchaincoders.com](https://www.theblockchaincoders.com/)
-- [@consultancy](https://www.theblockchaincoders.com/consultancy)
-- [@youtube](https://www.youtube.com/@daulathussain)
+---
+
+## Common Issues
+
+- **"Insufficient SOL balance" even with funds** — the price was hardcoded to
+  `1 SOL/token` in an earlier build. The fix uses `LAMPORTS_PER_TOKEN`
+  (`0.001 SOL/token`). Rebuild & redeploy the program after the change.
+- **Hero section doesn't render** — `HeroSection` must receive **named props**
+  (`wallet={wallet} ...`), not text children, and must be a **sibling** of
+  `NavBar` (NavBar does not render `children`).
+- **Price mismatch between display and charge** — keep
+  `NEXT_PUBLIC_PER_TOKEN_SOL_PRICE` and `LAMPORTS_PER_TOKEN` identical.
+
+---
+
+## Scripts
+
+| Command         | Description              |
+| --------------- | ------------------------ |
+| `npm run dev`   | Start the Next.js dev server |
+| `npm run build` | Production build         |
+| `npm start`     | Serve the production build |
+| `cargo build-sbf` (in `Contract/`) | Compile the Anchor program to BPF |
+
+---
+
+

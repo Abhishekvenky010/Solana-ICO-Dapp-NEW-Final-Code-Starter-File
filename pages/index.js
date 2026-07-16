@@ -1,23 +1,19 @@
 import React , {useState,useEffect} from "react";
-import dynamic from "next/dynamic";
 import { useWallet,useConnection } from "@solana/wallet-adapter-react";
-import { PublicKey,SystemProgram,SYSVAR_RENT_PUBKEY,Transaction } from "@solana/web3.js";
+import { PublicKey,SystemProgram,Transaction,LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID,getAssociatedTokenAddress,getAccount,createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import IDL from "../idl/idl.json";
-import {Program,AnchorProvider,web3, BN } from "@project-serum/anchor";
-import toast from "react-hot-toast";
+import {Program,AnchorProvider,BN } from "@project-serum/anchor";
 import {NavBar, HeroSection} from "../components";
 
-const WalletMutliButton = dynamic(()=>
-import ("@solana/wallet-adapter-react-ui").then((mod)=>mod.WalletMultiButton),{
-  ssr:false,
-});
 const ENV_PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID;
-const ENV_IPO_MINT  = process.env.NEXT_PUBLIC_ICO_MINT_TOKEN;
+const ENV_IPO_MINT =
+  process.env.NEXT_PUBLIC_IPO_MINT_TOKEN ||
+  process.env.NEXT_PUBLIC_ICO_MINT_TOKEN;
 
 const PROGRAM_ID = new PublicKey(ENV_PROGRAM_ID);
 const IPO_MINT = new PublicKey(ENV_IPO_MINT);
-const TOKEN_DECIMALS = new BN(1_000_000_000);
+const TOKEN_PRICE_SOL = parseFloat(process.env.NEXT_PUBLIC_PER_TOKEN_SOL_PRICE) || 0.001;
 
 export default function Home() {
   const {connection} = useConnection();
@@ -34,6 +30,7 @@ export default function Home() {
       checkIfAdmin();
       fetchIpoData();
       fetchUserTokenBalance();
+      fetchUserSolBalance();
     }
 
 },[wallet.connected]);
@@ -50,7 +47,7 @@ const checkIfAdmin = async()=>{
    const program = getProgram();
    if(!program)return;
     const [datapda] = await PublicKey.findProgramAddress(
-      [ArrayBuffer.from("data"),wallet.publicKey.toBuffer()],
+      [Buffer.from("data"),wallet.publicKey.toBuffer()],
       program.programId
     );
     try{
@@ -81,44 +78,7 @@ const fetchIpoData = async()=>{
     console.error(err);
   }
 };
-const createIcoAta = async()=>{
-  try{
-    if(!amount || parseInt(amount) <= 0){
-      alert("Please enter a valid amount");
-    }
-    setLoading(true);
-    const program = getProgram();
-    if(!program)return;
-    const [ipoAtaPda] = await PublicKey.findProgramAddress(
-    [IPO_MINT.toBuffer()],
-    program.programId
-    );
-    const [dataPda] = await PublicKey.findProgramAddress(
-      [Buffer.from("data"),wallet.publicKey.toBuffer()],
-      program.programId);
-      const adminIpoAta = await getAssociatedTokenAddress(IPO_MINT,wallet.publicKey);
-      await program.methods.createIcoAta(new BN(amount)).accounts({
-        ipoAtaForIcoProgram:ipoAtaPda,
-        data : dataPda,
-        ipoMint:IPO_MINT,
-        ipoAtaForAdmin:adminIpoAta,
-        admin:wallet.publicKey,
-        tokenProgram:TOKEN_PROGRAM_ID,
-        systemProgram:SystemProgram.programId,
-        rent:SYSVAR_RENT_PUBKEY,
-  })
-  .rpc();
-   alert("ICO ATA created successfully");
-   await fetchIpoData();
-  } catch(err){
-    console.error("Error creating ICO ATA:",err);
-    alert(`Error creating ICO ATA: ${err.message}`);
-  }
-  finally{
-    setLoading(false);
-};
-} 
-const depositIco = async()=>{
+const createIpoAta = async()=>{
   try{
     if(!amount || parseInt(amount) <= 0){
       alert("Please enter a valid amount");
@@ -135,13 +95,49 @@ const depositIco = async()=>{
       [Buffer.from("data"),wallet.publicKey.toBuffer()],
       program.programId);
       const adminIpoAta = await getAssociatedTokenAddress(IPO_MINT,wallet.publicKey);
-      await program.methods.depositIcoInAta(new BN(amount)).accounts({
-        ipoAtaForIcoProgram:ipoAtaPda,
+      await program.methods.createIpoAta(new BN(amount)).accounts({
+        ipoAtaForIpoProgram:ipoAtaPda,
         data : dataPda,
         ipoMint:IPO_MINT,
         ipoAtaForAdmin:adminIpoAta,
         admin:wallet.publicKey,
-        rent:SYSVAR_RENT_PUBKEY,
+        tokenProgram:TOKEN_PROGRAM_ID,
+        systemProgram:SystemProgram.programId,
+  })
+  .rpc();
+   alert("IPO ATA created successfully");
+   await fetchIpoData();
+  } catch(err){
+    console.error("Error creating IPO ATA:",err);
+    alert(`Error creating IPO ATA: ${err.message}`);
+  }
+  finally{
+    setLoading(false);
+};
+} 
+const depositIpo = async()=>{
+  try{
+    if(!amount || parseInt(amount) <= 0){
+      alert("Please enter a valid amount");
+      return;
+    }
+    setLoading(true);
+    const program = getProgram();
+    if(!program)return;
+    const [ipoAtaPda] = await PublicKey.findProgramAddress(
+    [IPO_MINT.toBuffer()],
+    program.programId
+    );
+    const [dataPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("data"),wallet.publicKey.toBuffer()],
+      program.programId);
+      const adminIpoAta = await getAssociatedTokenAddress(IPO_MINT,wallet.publicKey);
+      await program.methods.depositIpoAta(new BN(amount)).accounts({
+        ipoAtaForIpoProgram:ipoAtaPda,
+        data : dataPda,
+        ipoAtaForAdmin:adminIpoAta,
+        admin:wallet.publicKey,
+        tokenProgram:TOKEN_PROGRAM_ID,
   })
   .rpc();
    alert("Tokens deposited successfully");
@@ -158,13 +154,18 @@ const  buyTokens= async()=>{
   try{
     if(!amount || parseInt(amount) <= 0){
       alert("Please enter a valid amount");
+      return;
+    }
+    if(!ipoData?.admin){
+      alert("IPO needs to be initialized before buying tokens");
+      return;
     }
     setLoading(true);
     const program = getProgram();
     if(!program)return;
-    const solCost  = parseInt(amount) * 0.001;
+    const solCost  = parseInt(amount) * TOKEN_PRICE_SOL;
     const balance = await connection.getBalance(wallet.publicKey);
-    if(balance < solCost * 1e9 + 5000){
+    if(balance < solCost * LAMPORTS_PER_SOL + 5000){
       alert(`Insufficient SOL balance. You need at least ${solCost.toFixed(3)} SOL to buy ${amount} tokens.`);
       return;
     }
@@ -191,10 +192,10 @@ const  buyTokens= async()=>{
       }
 
       await program.methods.buyTokens(bump,new BN(amount)).accounts({
-        ipoAtaForIcoProgram:ipoAtaPda,
+        ipoAtaForIpoProgram:ipoAtaPda,
         data : dataPda,
         ipoMint:IPO_MINT,
-        ipoAtaForUser:userIpoAta,
+        userAtaForIpo:userIpoAta,
         user:wallet.publicKey,
         admin : ipoData.admin,
         tokenProgram:TOKEN_PROGRAM_ID,
@@ -204,6 +205,7 @@ const  buyTokens= async()=>{
    alert(`Successfully bought ${amount} tokens`);
    await fetchIpoData();
    await fetchUserTokenBalance();
+   await fetchUserSolBalance();
   } catch(err){
     console.error("Error buying tokens:",err);
     alert(`Error buying tokens: ${err.message}`);
@@ -228,8 +230,18 @@ const fetchUserTokenBalance = async()=>{
     setUserTokenBalance("0");
   }
 };
+const fetchUserSolBalance = async()=>{
+  try{
+    if(!wallet.publicKey)return;
+    const balance = await connection.getBalance(wallet.publicKey);
+    setUserSolBalance((balance / LAMPORTS_PER_SOL).toFixed(4));
+  }catch(err){
+    console.error("Error fetching user SOL balance:",err);
+    setUserSolBalance("0");
+  }
+};
 return (
-  <div>
+  <div className="min-h-screen bg-[#0d0b21]">
     <NavBar />
     <main>
       <HeroSection
@@ -241,8 +253,8 @@ return (
         userSolBalance={userSolBalance}
         userTokenBalance={userTokenBalance}
         setAmount={setAmount}
-        createIcoAta={createIcoAta}
-        depositIpo={depositIco}
+        createIpoAta={createIpoAta}
+        depositIpo={depositIpo}
         buyTokens={buyTokens}
       />
     </main>
